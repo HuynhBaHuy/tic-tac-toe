@@ -1,6 +1,137 @@
 import '../../index.css';
 import Board from "../Board";
-import React from 'react';
+import React, { useState } from 'react';
+function Game(props) {
+    const [size, setSize] = useState(3);
+    const [history, setHistory] = useState([
+        {
+            squares: Array(size).fill(null).map(() => Array(size).fill(null)),
+            position: null,
+            isBold: false
+        }
+    ]);
+    const [stepNumber, setStepNumber] = useState(0);
+    const [xIsNext, setXIsNext] = useState(true);
+    const [isSortAscending, setIsSortAscending] = useState(true);
+    const handleClick = (row, col) => {
+        console.log("Row, col", row, col)
+        const his = history.slice(0, stepNumber + 1);
+        console.log("His", his);
+        const current = his[his.length - 1];
+        const squares = current.squares.slice();
+        const calcWinner = calculateWinner(squares);
+        if (calcWinner || squares[row][col]) {
+            return;
+        }
+        current.isBold = false;
+        squares[row] = squares[row].slice();
+        squares[row][col] = xIsNext ? 'X' : 'O';
+        setHistory(his.concat([{
+            squares,
+            position: { row, col },
+            isBold: true
+        }]))
+        setStepNumber(his.length);
+        setXIsNext(!xIsNext);
+    }
+    const jumpTo = (step, move) => {
+        console.log("Step", step);
+        console.log("Move", move);
+        setHistory(history => history.map((item, index) => {
+            if (index === move) {
+                item.isBold = true;
+            } else {
+                item.isBold = false;
+            }
+            return item;
+        }))
+        setStepNumber(move);
+        setXIsNext((move % 2) === 0);
+    }
+    const handleSortHistory = () => {
+        setIsSortAscending(!isSortAscending);
+    }
+    const render = () => {
+        const current = history[stepNumber];
+        const calcWinner = calculateWinner(current.squares);
+        let status;
+        const winningSquares = calcWinner?.lines ?? [];
+        if (calcWinner && calcWinner.type === 'win') {
+            const winner = calcWinner?.winner ?? '';
+            status = 'Winner: ' + winner;
+        } else if (calcWinner && calcWinner.type === 'draw') {
+            status = 'Game Over: Draw';
+        } else {
+            status = 'Next player: ' + (xIsNext ? 'X' : 'O');
+        }
+        let message = '';
+        if (calcWinner && calcWinner.type === 'draw') {
+            message = 'Draw Match';
+        }
+        return (
+            <>
+                <div className="game-title">
+                    Tic Tac Toe
+                </div>
+                <div className="game">
+                    <div className="game-container">
+                        <div className="status">{status}</div>
+                        <div className="game-board">
+                            <Board
+                                size={size}
+                                squares={current.squares}
+                                winningSquares={winningSquares}
+                                onClick={(row, col) => handleClick(row, col)}
+                            />
+                        </div>
+                        <p style={{ color: "red" }}>
+                            <strong>
+                                {message}
+                            </strong>
+                        </p>
+                    </div>
+                    <div className="game-info">
+                        <p className='history-title'>History Match</p>
+                        <div className="sort-wrapper">
+                            <p>
+                                {
+                                    isSortAscending ? 'Ascending' : 'Descending'
+                                }
+                            </p>
+                            <label className="switch">
+                                <input type="checkbox" onClick={() => handleSortHistory()} />
+                                <span className="slider round"></span>
+                            </label>
+                        </div>
+                        <ol>{
+                            history.map((step, move) => {
+                                const desc = move ?
+                                    'Go to move #' + move :
+                                    'Go to game start';
+                                const position = step.position ? `(${step.position.col},${step.position.row})` : '';
+                                return (
+                                    <li key={move}>
+                                        <button className='history-btn' onClick={() => jumpTo(step, move)}>
+                                            {step.isBold ? <b>{desc}</b> : desc}
+                                            <span> {position} </span>
+                                        </button>
+                                    </li>
+                                );
+                            }).sort((a, b) => {
+                                if (isSortAscending) {
+                                    return a.key - b.key;
+                                }
+                                return b.key - a.key;
+                            })
+                        }</ol>
+                    </div>
+                </div>
+            </>
+        );
+    }
+    return render();
+}
+
 function calculateWinner(squares) {
     // check rows
     const size = squares.length;
@@ -80,163 +211,4 @@ function calculateWinner(squares) {
     }
     return null;
 }
-class Game extends React.Component {
-    handleClick(row, col) {
-        console.group('===========handleClick==============');
-        console.log("State Before: ", this.state);
-        console.log(`click: ${row},${col}`);
-        const history = this.state.history.slice(0, this.state.stepNumber + 1);
-        console.log("history: ", history);
-        // const current = history.map((item) => {});
-        const current = history[history.length - 1];
-        console.log("current: ", current);
-        const squares = current.squares.slice();
-        const calcWinner = calculateWinner(squares);
-        console.log("calcWinner: ", calcWinner);
-        if (calcWinner || squares[row][col]) {
-            return;
-        }
-        current.isBold = false;
-        squares[row] = squares[row].slice();
-        squares[row][col] = this.state.xIsNext ? 'X' : 'O';
-        console.log("squares: ", squares);
-        this.setState({
-            history: history.concat([{
-                squares: squares,
-                position: {
-                    row: row,
-                    col: col
-                },
-                isBold: true
-            }]),
-            stepNumber: history.length,
-            xIsNext: !this.state.xIsNext
-        });
-        console.log("State After: ", this.state);
-        console.groupEnd();
-    }
-    constructor(props) {
-        super(props);
-        const size = 3
-        this.state = {
-            history: [{
-                squares: Array(size).fill(null).map(() => Array(size).fill(null)),
-                position: null,
-                isBold: false
-            }],
-            size: size,
-            xIsNext: true,
-            isSortAscending: true,
-            stepNumber: 0
-        };
-    }
-    jumpTo = (step, move) => {
-        console.log("======JUMP-TO=======")
-        console.log("step: ", step);
-        console.log("move", move);
-        this.setState({
-            history: this.state.history.map((item, index) => {
-                if (index === move) {
-                    item.isBold = true;
-                } else {
-                    item.isBold = false;
-                }
-                return item;
-            }),
-            stepNumber: move,
-            xIsNext: (move % 2) === 0
-        });
-    }
-    handleSortHistory = () => {
-        this.setState({
-            isSortAscending: !this.state.isSortAscending
-        })
-    }
-    render() {
-        console.log("======RENDER=======", this.state.stepNumber)
-        const history = this.state.history
-        console.log("State In Render: ", this.state);
-        const current = history[this.state.stepNumber];
-        console.log(
-            "current In Render: ",
-            current
-        )
-        const calcWinner = calculateWinner(current.squares);
-        let status;
-        const winningSquares = calcWinner?.lines ?? [];
-        if (calcWinner && calcWinner.type === 'win') {
-            const winner = calcWinner?.winner ?? '';
-            status = 'Winner: ' + winner;
-        } else if (calcWinner && calcWinner.type === 'draw') {
-            status = 'Game Over: Draw';
-        } else {
-            status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-        }
-        let message = '';
-        if (calcWinner && calcWinner.type === 'draw') {
-            message = 'Draw Match';
-        }
-        return (
-            <>
-                <div className="game-title">
-                    Tic Tac Toe
-                </div>
-                <div className="game">
-                    <div className="game-container">
-                        <div className="status">{status}</div>
-                        <div className="game-board">
-                            <Board
-                                size={this.state.size}
-                                squares={current.squares}
-                                winningSquares={winningSquares}
-                                onClick={(row, col) => this.handleClick(row, col)}
-                            />
-                        </div>
-                        <p style={{ color: "red" }}>
-                            <strong>
-                                {message}
-                            </strong>
-                        </p>
-                    </div>
-                    <div className="game-info">
-                        <p className='history-title'>History Match</p>
-                        <div className="sort-wrapper">
-                            <p>
-                                {
-                                    this.state.isSortAscending ? 'Ascending' : 'Descending'
-                                }
-                            </p>
-                            <label className="switch">
-                                <input type="checkbox" onClick={() => this.handleSortHistory()} />
-                                <span className="slider round"></span>
-                            </label>
-                        </div>
-                        <ol>{
-                            history.map((step, move) => {
-                                const desc = move ?
-                                    'Go to move #' + move :
-                                    'Go to game start';
-                                const position = step.position ? `(${step.position.col},${step.position.row})` : '';
-                                return (
-                                    <li key={move}>
-                                        <button className='history-btn' onClick={() => this.jumpTo(step, move)}>
-                                            {step.isBold ? <b>{desc}</b> : desc}
-                                            <span> {position} </span>
-                                        </button>
-                                    </li>
-                                );
-                            }).sort((a, b) => {
-                                if (this.state.isSortAscending) {
-                                    return a.key - b.key;
-                                }
-                                return b.key - a.key;
-                            })
-                        }</ol>
-                    </div>
-                </div>
-            </>
-        );
-    }
-}
-
 export default Game;

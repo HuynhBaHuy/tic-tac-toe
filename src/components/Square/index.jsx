@@ -1,22 +1,23 @@
 import '../../index.css';
-import React from 'react';
-class Square extends React.Component {
-    render() {
+function Square (props) {
+    const render = () => {
         return (
             <button
                 className="square"
-                onClick={() => this.props.onClick()}
+                onClick={() => props.onClick()}
             >
                 {
-                    this.props.isMarked ? (
+                    props.isMarked ? (
                         <mark>{
-                            this.props.value
+                            props.value
                         }</mark>
                     ) :
-                        this.props.value
+                        props.value
                 }
             </button>
         );
+
     }
+    return render();
 }
 export default Square;
